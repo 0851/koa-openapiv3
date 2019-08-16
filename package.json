@@ -1,0 +1,42 @@
+{
+  "name": "koa-openapiv3",
+  "version": "1.0.0",
+  "description": "this is a koa middleware ，that validates header&cookie&params&body&parameters based on openapiv3 and displays doc and cli print routing information",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "release": "npm run release-patch",
+    "prelease": "npm run build && npm version prerelease && git push --tags --force && git push && npm publish",
+    "release-patch": "npm run build && npm version patch && git push --tags && git push && npm publish",
+    "release-minor": "npm run build && npm version minor && git push --tags && git push && npm publish",
+    "release-major": "npm run build && npm version major && git push --tags && git push && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0851/koa-openapiv3.git"
+  },
+  "keywords": [
+    "koa",
+    "openapi"
+  ],
+  "author": "wangjianliang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/0851/koa-openapiv3/issues"
+  },
+  "homepage": "https://github.com/0851/koa-openapiv3#readme",
+  "dependencies": {
+    "ajv": "^6.10.2",
+    "ajv-errors": "^1.0.1",
+    "chalk": "^2.4.2",
+    "cli-table": "^0.3.1",
+    "json-schema-ref-parser": "^7.1.0",
+    "koa-send": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/json-schema": "^7.0.3",
+    "@types/koa": "^2.0.49",
+    "@types/node": "^12.7.2",
+    "typescript": "^3.5.3"
+  }
+}
