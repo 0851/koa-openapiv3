@@ -15,6 +15,22 @@ yarn add koa-openapiv3
 "koa-router": "^7.4.0"
 ```
 
+## based
+```js
+"ajv": "^6.10.2",
+"ajv-errors": "^1.0.1",
+"chalk": "^2.4.2",
+"cli-table": "^0.3.1",
+"json-schema-ref-parser": "^7.1.0",
+"koa-send": "^5.0.0"
+
+
+"@types/json-schema": "^7.0.3",
+"@types/koa": "^2.0.49",
+"@types/node": "^12.7.2",
+"typescript": "^3.5.3"
+```
+
 ## tips
 ```
 requestBody.content.mime the request content-type field without parameters, such as charset.
