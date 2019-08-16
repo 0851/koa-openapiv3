@@ -1,23 +1,3 @@
-# koa-openapiv3
-this is a koa middleware ，that validates header&amp;cookie&amp;params&amp;body&amp;parameters based on openapiv3 and displays doc and cli print routing information
-
-
-## install
-```js
-npm install koa-openapiv3
-yarn add koa-openapiv3
-```
-
-# require
-```js
-"koa": "^2.7.0",
-"koa-body": "^4.1.1",
-"koa-router": "^7.4.0"
-```
-
-
-## example
-```ts
 import Koa from "koa";
 import KoaRouter from "koa-router";
 import KoaBody from "koa-body";
@@ -111,44 +91,3 @@ swagger.printRoutes();
 console.log("serve", `listen on ${options.port}`);
 
 app.listen(options.port);
-
-```
-
-## method
-```ts
-type SwaggerOptionUI = {
-  routerPath: string; //swagger json file path
-  uiRouterPath?: string;    // swagger doc ui path
-  openapi?: string;         // swagger v3 schema
-  info?: OpenAPIInfo;       // swagger v3 schema
-  paths?: OpenAPIPaths;     // swagger v3 schema
-  components?: OpenAPIComponents;   // swagger v3 schema
-  security?: OpenAPISecurityRequirement[];    // swagger v3 schema
-  tags?: OpenAPITag[];        // swagger v3 schema
-  externalDocs?: OpenAPIExternalDocumentation;      // swagger v3 schema
-}
-
-type SwaggerApiOption = {
-  path: string;
-  method: string;
-  filename: string;
-  errorMessage?: any;
-} & OpenAPIOperation;
-
-
-interface SwaggerApi {
-  constructor(option: SwaggerApiOption)
-  do(): Koa.Middleware
-}
-
-interface Swagger{
-  //show ui 
-  ui(config: SwaggerOptionUI): Koa.Middleware
-  //cli print all routes
-  printRoutes(): void
-  //add one router
-  add(config: SwaggerApiOption): SwaggerApi
-}
-  
-  
-```
