@@ -8,13 +8,24 @@ npm install koa-openapiv3
 yarn add koa-openapiv3
 ```
 
-# require
+## require
 ```js
 "koa": "^2.7.0",
 "koa-body": "^4.1.1",
 "koa-router": "^7.4.0"
 ```
 
+## tips
+```
+requestBody.content.mime the request content-type field without parameters, such as charset.
+
+e.g. `application/json` `text/plain`   `application/x-www-form-urlencoded`
+
+
+if you do not like this ui ,you can use swagger json path custom ui
+
+
+```
 
 ## example
 ```ts
@@ -152,3 +163,9 @@ interface Swagger{
   
   
 ```
+
+## 
+![errors tips](./static/1-min.png)
+![cli print routes](./static/2-min.png)
+![swagger api ui](./static/3-min.png)
+![swagger api json](./static/4-min.png)

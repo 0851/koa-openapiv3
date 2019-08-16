@@ -18,6 +18,8 @@ const test1 = swagger.add({
   path: "/test1",
   method: "GET",
   filename: __filename,
+  summary: "this is test1",
+  description: "this is test1 xxx",
   parameters: [
     {
       name: "uuid",
@@ -29,6 +31,14 @@ const test1 = swagger.add({
     },
     {
       name: "ddd",
+      in: "query",
+      schema: {
+        type: "string"
+      },
+      required: true
+    },
+    {
+      name: "test1",
       in: "query",
       schema: {
         type: "string"
@@ -54,6 +64,9 @@ router[test1.method](test1.path, test1.do(), async ctx => {
 const test2 = swagger.add({
   path: "/test2",
   method: "POST",
+  summary: "test2",
+  description: "this is test2",
+  deprecated: true,
   filename: __filename,
   requestBody: {
     content: {
