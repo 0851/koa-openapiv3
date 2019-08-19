@@ -30,6 +30,7 @@
     "ajv-errors": "^1.0.1",
     "chalk": "^2.4.2",
     "cli-table": "^0.3.1",
+    "json-schema": "^0.2.3",
     "json-schema-ref-parser": "^7.1.0",
     "koa-send": "^5.0.0"
   },
