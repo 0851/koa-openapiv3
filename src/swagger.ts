@@ -241,9 +241,7 @@ class Swagger {
     if (existing) {
       const err = new Error(
         chalk.red(
-          `path ${api.path} method ${api.method} is existing ${
-            existing.filename
-          }`
+          `path ${api.path} method ${api.method} is existing ${existing.filename}`
         )
       );
       console.error(err);
@@ -338,5 +336,5 @@ class Swagger {
     console.log(table.toString());
   }
 }
-
+export { SwaggerOption, SwaggerOptionUI, SwaggerApiOption, SwaggerApi };
 export default Swagger;
