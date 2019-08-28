@@ -251,6 +251,7 @@ var SwaggerApi = /** @class */ (function () {
     };
     return SwaggerApi;
 }());
+exports.SwaggerApi = SwaggerApi;
 var Swagger = /** @class */ (function () {
     function Swagger() {
         this.swaggerApis = [];
