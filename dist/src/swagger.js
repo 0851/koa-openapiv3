@@ -332,7 +332,7 @@ var Swagger = /** @class */ (function () {
     };
     Swagger.prototype.printRoutes = function () {
         var table = new cli_table_1.default({
-            head: ["Method", "Path", "Where The File"]
+            head: ["Method", "Path", "File"]
         });
         this.swaggerApis.forEach(function (item) {
             table.push([item.method, item.path, item.filename]);
