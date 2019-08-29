@@ -51,7 +51,7 @@ type SwaggerApiOption = {
 class SwaggerApi {
   path: string;
   method: string;
-  filename: string;
+  filename?: string;
   operation: OpenAPIOperation;
   constructor(option: SwaggerApiOption) {
     this.operation = {
@@ -325,7 +325,7 @@ class Swagger {
 
   printRoutes() {
     const table = new Table({
-      head: ["Method", "Path", "Where The File"]
+      head: ["Method", "Path", "File"]
     });
 
     this.swaggerApis.forEach(item => {
@@ -336,5 +336,11 @@ class Swagger {
     console.log(table.toString());
   }
 }
-export { SwaggerOption, SwaggerOptionUI, SwaggerApiOption, SwaggerApi };
+export {
+  SwaggerOption,
+  SwaggerOptionUI,
+  SwaggerApiOption,
+  SwaggerApi,
+  OpenAPIOperation
+};
 export default Swagger;
