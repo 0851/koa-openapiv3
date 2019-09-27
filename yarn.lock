@@ -9,6 +9,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/ajv-errors@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.npm.taobao.org/@types/ajv-errors/download/@types/ajv-errors-1.0.2.tgz#963eadef9bfb51c47d110281433b626324a63329"
+  integrity sha1-lj6t75v7UcR9EQKBQztiYySmMyk=
+  dependencies:
+    ajv "*"
+
 "@types/body-parser@*":
   version "1.17.0"
   resolved "https://registry.yarnpkg.com/@types/body-parser/-/body-parser-1.17.0.tgz#9f5c9d9bd04bb54be32d5eb9fc0d8c974e6cf58c"
@@ -16,6 +23,11 @@
   dependencies:
     "@types/connect" "*"
     "@types/node" "*"
+
+"@types/cli-table@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.npm.taobao.org/@types/cli-table/download/@types/cli-table-0.3.0.tgz#f1857156bf5fd115c6a2db260ba0be1f8fc5671c"
+  integrity sha1-8YVxVr9f0RXGotsmC6C+H4/FZxw=
 
 "@types/connect@*":
   version "3.4.32"
@@ -73,6 +85,13 @@
   dependencies:
     "@types/koa" "*"
 
+"@types/koa-send@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.npm.taobao.org/@types/koa-send/download/@types/koa-send-4.1.2.tgz#978f8267ad116d12ac6a18fecd8f34c5657e09ad"
+  integrity sha1-l4+CZ60RbRKsahj+zY80xWV+Ca0=
+  dependencies:
+    "@types/koa" "*"
+
 "@types/koa@*", "@types/koa@^2.0.49":
   version "2.0.49"
   resolved "https://registry.yarnpkg.com/@types/koa/-/koa-2.0.49.tgz#8ffc2ddbdd715a2c392a218c67e116cb07007234"
@@ -113,7 +132,7 @@ ajv-errors@^1.0.1:
   resolved "https://registry.yarnpkg.com/ajv-errors/-/ajv-errors-1.0.1.tgz#f35986aceb91afadec4102fbd85014950cefa64d"
   integrity sha512-DCRfO/4nQ+89p/RK43i8Ezd41EqdGIU4ld7nGF8OQ14oc/we5rEntLCUa7+jrn3nn83BosfwZA0wb4pon2o8iQ==
 
-ajv@^6.10.2:
+ajv@*, ajv@^6.10.2:
   version "6.10.2"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.10.2.tgz#d3cea04d6b017b2894ad69040fec8b623eb4bd52"
   integrity sha512-TXtUUEYHuaTEbLZWIKUr5pmBuhDLy+8KYtPYdcV8qC+pOZL+NKqYwvWSRrVXHn+ZmRRAu8vJTAznH7Oag6RVRw==

@@ -72,7 +72,7 @@ var SwaggerApi = /** @class */ (function () {
         var validate = ajv.compile(schema);
         var b = validate(data);
         if (b !== true) {
-            var errors = validate.errors.map(function (item) {
+            var errors = (validate.errors || []).map(function (item) {
                 return {
                     name: name,
                     message: item.message
@@ -83,31 +83,31 @@ var SwaggerApi = /** @class */ (function () {
         return;
     };
     SwaggerApi.prototype.getParams = function (ctx, at) {
-        if (at === "query") {
+        if (at === 'query') {
             return ctx.query;
         }
-        if (at === "cookie") {
+        if (at === 'cookie') {
             return new Proxy({}, {
                 get: function (obj, prop) {
                     return ctx.cookies.get(prop);
                 }
             });
         }
-        if (at === "header") {
+        if (at === 'header') {
             return ctx.headers;
         }
-        if (at === "path") {
+        if (at === 'path') {
             return ctx.params || {};
         }
     };
     SwaggerApi.prototype.getParamsSchema = function (at) {
         return __awaiter(this, void 0, void 0, function () {
-            var obj, parameters, _i, parameters_1, param, item, schema, name_1, required, allowEmptyValue, example, item;
+            var obj, parameters, _i, parameters_1, param, asRef, asParamter, item, schemaAsRef, schemaAsOpenAPISchema, schema, name, required, allowEmptyValue, example, item;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         obj = {
-                            type: "object",
+                            type: 'object',
                             properties: {},
                             required: []
                         };
@@ -117,23 +117,27 @@ var SwaggerApi = /** @class */ (function () {
                     case 1:
                         if (!(_i < parameters_1.length)) return [3 /*break*/, 7];
                         param = parameters_1[_i];
-                        if (!param["$ref"]) return [3 /*break*/, 3];
-                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(param)];
+                        asRef = param;
+                        asParamter = param;
+                        if (!(asRef['$ref'] !== '')) return [3 /*break*/, 3];
+                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(asRef)];
                     case 2:
                         item = _a.sent();
                         param = item;
                         _a.label = 3;
                     case 3:
-                        if (param["in"] !== at) {
+                        if (asParamter['in'] !== at) {
                             return [3 /*break*/, 6];
                         }
-                        schema = param["schema"] || {};
-                        name_1 = param["name"];
-                        required = param["required"];
-                        allowEmptyValue = param["allowEmptyValue"];
-                        example = param["example"];
-                        if (!schema["$ref"]) return [3 /*break*/, 5];
-                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(schema)];
+                        schemaAsRef = asParamter['schema'] || {};
+                        schemaAsOpenAPISchema = asParamter['schema'] || {};
+                        schema = schemaAsOpenAPISchema || {};
+                        name = asParamter['name'];
+                        required = asParamter['required'];
+                        allowEmptyValue = asParamter['allowEmptyValue'];
+                        example = asParamter['example'];
+                        if (!schemaAsRef['$ref']) return [3 /*break*/, 5];
+                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(schemaAsRef)];
                     case 4:
                         item = _a.sent();
                         schema = item;
@@ -141,9 +145,15 @@ var SwaggerApi = /** @class */ (function () {
                     case 5:
                         schema.nullable = schema.nullable || allowEmptyValue;
                         schema.example = schema.example || example;
-                        obj.properties[name_1] = schema;
+                        if (!obj.properties) {
+                            obj.properties = {};
+                        }
+                        obj.properties[name] = schema;
                         if (!!required) {
-                            obj.required.push(name_1);
+                            if (!obj.required) {
+                                obj.required = [];
+                            }
+                            obj.required.push(name);
                         }
                         _a.label = 6;
                     case 6:
@@ -156,19 +166,21 @@ var SwaggerApi = /** @class */ (function () {
     };
     SwaggerApi.prototype.getPayloadSchema = function (type) {
         return __awaiter(this, void 0, void 0, function () {
-            var requestBody, content, contentType, schema, example;
+            var requestBodyAsRef, requestBodyAsOpenAPIRequestBody, requestBody, content, contentType, schema, example;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         type = type.toLowerCase();
-                        requestBody = this.operation.requestBody || {};
-                        if (!requestBody["$ref"]) return [3 /*break*/, 2];
-                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(requestBody)];
+                        requestBodyAsRef = this.operation.requestBody || {};
+                        requestBodyAsOpenAPIRequestBody = this.operation.requestBody || {};
+                        requestBody = requestBodyAsOpenAPIRequestBody || {};
+                        if (!requestBodyAsRef['$ref']) return [3 /*break*/, 2];
+                        return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(requestBodyAsRef)];
                     case 1:
                         requestBody = _a.sent();
                         _a.label = 2;
                     case 2:
-                        content = requestBody["content"];
+                        content = requestBody['content'];
                         if (!content) {
                             return [2 /*return*/, {}];
                         }
@@ -176,9 +188,9 @@ var SwaggerApi = /** @class */ (function () {
                         if (!contentType) {
                             return [2 /*return*/, {}];
                         }
-                        schema = contentType["schema"] || {};
-                        example = contentType["example"];
-                        if (!schema["$ref"]) return [3 /*break*/, 4];
+                        schema = contentType['schema'] || {};
+                        example = contentType['example'];
+                        if (!schema['$ref']) return [3 /*break*/, 4];
                         return [4 /*yield*/, json_schema_ref_parser_1.default.dereference(schema)];
                     case 3:
                         schema = _a.sent();
@@ -202,26 +214,26 @@ var SwaggerApi = /** @class */ (function () {
                     switch (_b.label) {
                         case 0:
                             _b.trys.push([0, 3, , 4]);
-                            pathParams = self.getParams(ctx, "path");
-                            getQuery = self.getParams(ctx, "query");
-                            getHeader = self.getParams(ctx, "header");
-                            getCookie = self.getParams(ctx, "cookie");
+                            pathParams = self.getParams(ctx, 'path');
+                            getQuery = self.getParams(ctx, 'query');
+                            getHeader = self.getParams(ctx, 'header');
+                            getCookie = self.getParams(ctx, 'cookie');
                             getPayload = self.getPayload(ctx);
                             return [4 /*yield*/, Promise.all([
-                                    self.getParamsSchema("path"),
-                                    self.getParamsSchema("query"),
-                                    self.getParamsSchema("header"),
-                                    self.getParamsSchema("cookie"),
+                                    self.getParamsSchema('path'),
+                                    self.getParamsSchema('query'),
+                                    self.getParamsSchema('header'),
+                                    self.getParamsSchema('cookie'),
                                     // 获取请求 Content-Type 字段, 不包含参数, 如 "charset".
                                     self.getPayloadSchema(ctx.type)
                                 ])];
                         case 1:
                             _a = _b.sent(), pathParamsSchema = _a[0], getQuerySchema = _a[1], getHeaderSchema = _a[2], getCookieSchema = _a[3], getPayloadSchema = _a[4];
-                            self.validate(pathParams, pathParamsSchema, "Path error");
-                            self.validate(getQuery, getQuerySchema, "Query error");
-                            self.validate(getPayload, getPayloadSchema, "Payload error");
-                            self.validate(getHeader, getHeaderSchema, "Header error");
-                            self.validate(getCookie, getCookieSchema, "Cookie error");
+                            self.validate(pathParams, pathParamsSchema, 'Path error');
+                            self.validate(getQuery, getQuerySchema, 'Query error');
+                            self.validate(getPayload, getPayloadSchema, 'Payload error');
+                            self.validate(getHeader, getHeaderSchema, 'Header error');
+                            self.validate(getCookie, getCookieSchema, 'Cookie error');
                             return [4 /*yield*/, next()];
                         case 2:
                             _b.sent();
@@ -233,7 +245,7 @@ var SwaggerApi = /** @class */ (function () {
                             if (!Array.isArray(err)) {
                                 err = [
                                     {
-                                        name: "Internal error",
+                                        name: 'Internal error',
                                         message: err.message
                                     }
                                 ];
@@ -287,10 +299,10 @@ var Swagger = /** @class */ (function () {
     };
     Swagger.prototype.ui = function (config) {
         var option = __assign({
-            openapi: "3.0.0",
+            openapi: '3.0.0',
             info: {
-                title: "openapi",
-                version: "1.0.0"
+                title: 'openapi',
+                version: '1.0.0'
             },
             paths: {}
         }, config);
@@ -316,7 +328,7 @@ var Swagger = /** @class */ (function () {
                             return [3 /*break*/, 7];
                         case 3:
                             if (!(ctx.path === config.uiRouterPath + "__inner__js.js")) return [3 /*break*/, 5];
-                            return [4 /*yield*/, koa_send_1.default(ctx, "redoc.standalone.js", { gzip: true, root: __dirname })];
+                            return [4 /*yield*/, koa_send_1.default(ctx, 'redoc.standalone.js', { gzip: true, root: __dirname })];
                         case 4:
                             _a.sent();
                             return [3 /*break*/, 7];
@@ -332,7 +344,7 @@ var Swagger = /** @class */ (function () {
     };
     Swagger.prototype.printRoutes = function () {
         var table = new cli_table_1.default({
-            head: ["Method", "Path", "File"]
+            head: ['Method', 'Path', 'File']
         });
         this.swaggerApis.forEach(function (item) {
             table.push([item.method, item.path, item.filename]);

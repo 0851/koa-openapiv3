@@ -3,9 +3,14 @@
     "outDir": "dist",
     "allowJs": true,
     "target": "es5",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "lib": ["es6"],
+    "strict": true,
+    "strictNullChecks": true
   },
   "include": ["index.ts", "src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts"]

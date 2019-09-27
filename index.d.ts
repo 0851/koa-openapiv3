@@ -15,7 +15,7 @@ import {
   SwaggerOptionUI,
   SwaggerApiOption
 } from "./src/swagger";
-import Koa from "koa";
+import Koa, { Middleware } from "koa";
 export {
   OpenAPISpec,
   OpenAPIOperation,
@@ -41,19 +41,19 @@ export class SwaggerApi {
   method: string;
   filename: string;
   operation: OpenAPIOperation;
-  constructor(option: SwaggerApiOption);
-  validate(data: any, schema: OpenAPISchema, name: string);
-  getParams(ctx: Koa.ParameterizedContext, at: OpenAPIParameterLocation): any;
-  getParamsSchema(at: OpenAPIParameterLocation): Promise<OpenAPISchema>;
-  getPayloadSchema(type: string): Promise<OpenAPISchema>;
-  getPayload(ctx: Koa.ParameterizedContext<any, KoaBody>): any;
-  do(): Koa.Middleware;
+  constructor (option: SwaggerApiOption);
+  validate (data: any, schema: OpenAPISchema, name: string): boolean;
+  getParams (ctx: Koa.ParameterizedContext, at: OpenAPIParameterLocation): any;
+  getParamsSchema (at: OpenAPIParameterLocation): Promise<OpenAPISchema>;
+  getPayloadSchema (type: string): Promise<OpenAPISchema>;
+  getPayload (ctx: Koa.ParameterizedContext<any, KoaBody>): any;
+  do (): Koa.Middleware;
 }
 export default class Swagger {
   swaggerApis: SwaggerApi[];
-  constructor();
-  add(api: SwaggerApiOption): SwaggerApi;
-  extendPath(option: SwaggerOption): SwaggerOption;
-  ui(config: SwaggerOptionUI): Koa.Middleware;
-  printRoutes();
+  constructor ();
+  add (api: SwaggerApiOption): SwaggerApi;
+  extendPath (option: SwaggerOption): SwaggerOption;
+  ui (config: SwaggerOptionUI): Middleware;
+  printRoutes (): void;
 }
