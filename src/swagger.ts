@@ -50,7 +50,7 @@ type SwaggerOptionUI = {
 type SwaggerApiOption = {
   path: string
   method: string
-  filename: string
+  filename?: string
   errorMessage?: any
 } & OpenAPIOperation
 
@@ -353,7 +353,7 @@ class Swagger {
 
   printRoutes () {
     const table = new Table({
-      head: ['Method', 'Path', 'File']
+      head: ['Method', 'Path', 'Other']
     })
 
     this.swaggerApis.forEach(item => {
