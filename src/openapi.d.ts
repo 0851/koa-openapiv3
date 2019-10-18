@@ -102,8 +102,8 @@ export interface OpenAPIExample {
 
 export interface OpenAPISchema {
   $ref?: string;
-  type?: string;
   id?: string;
+  type?: string;
   properties?: { [name: string]: OpenAPISchema };
   additionalProperties?: boolean | OpenAPISchema;
   description?: string;
