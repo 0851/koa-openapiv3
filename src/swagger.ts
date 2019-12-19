@@ -5,89 +5,75 @@ import Koa from 'koa'
 import Table from 'cli-table'
 import $RefParser from 'json-schema-ref-parser'
 import chalk from 'chalk'
+import path from 'path'
+import * as _ from 'lodash'
+
 
 import {
-  OpenAPISpec,
-  OpenAPIOperation,
-  OpenAPISchema,
-  OpenAPIPaths,
-  OpenAPIInfo,
-  OpenAPIComponents,
-  OpenAPISecurityRequirement,
-  OpenAPITag,
-  OpenAPIExternalDocumentation,
-  OpenAPIParameterLocation,
+  IOpenAPI,
+  IOpenAPIPath,
+  IOpenAPISchema,
+  IOpenAPIRef,
+  IOpenAPIParameter,
   Referenced,
-  OpenAPIParameter,
-  OpenAPIRef,
-  OpenAPIRequestBody,
-  OpenAPIPath
-} from './openapi.d'
-import { Middleware } from 'koa-compose'
+  IOpenAPIParameterLocation,
+  IOpenAPIOperation, IOpenAPIComponent, Dict, IOpenAPIRequestBody,
+} from './openapi'
 
 let ajv = new Ajv({ allErrors: true, jsonPointers: true })
 ajverrors(ajv /*, {singleError: true} */)
 
-interface KoaBody {
+export interface KoaBody {
   request: {
     body: any
   }
 }
-type SwaggerOption = OpenAPISpec
 
-type SwaggerOptionUI = {
-  routerPath: string
-  uiRouterPath?: string
-  openapi?: string
-  info?: OpenAPIInfo
-  paths?: OpenAPIPaths
-  components?: OpenAPIComponents
-  security?: OpenAPISecurityRequirement[]
-  tags?: OpenAPITag[]
-  externalDocs?: OpenAPIExternalDocumentation
-}
+export type ApiMethod =
+  'get' |
+  'put' |
+  'post' |
+  'delete' |
+  'options' |
+  'head' |
+  'patch' |
+  'trace'
 
-type SwaggerApiOption = {
+export class Api {
   path: string
   method: string
-  filename?: string
-  errorMessage?: any
-} & OpenAPIOperation
+  operation: IOpenAPIOperation
+  schema: IOpenAPI
+  paramsSchema?: Dict<IOpenAPISchema>
+  querySchema?: Dict<IOpenAPISchema>
+  headerSchema?: Dict<IOpenAPISchema>
+  cookieSchema?: Dict<IOpenAPISchema>
+  payloadSchema?: Dict<IOpenAPISchema>
 
-class SwaggerApi {
-  path: string
-  method: string
-  filename?: string
-  operation: OpenAPIOperation
-  constructor (option: SwaggerApiOption) {
-    this.operation = {
-      ...option,
-      ...{
-        method: undefined,
-        filename: undefined,
-        path: undefined
-      }
-    }
-    this.path = option.path
-    this.filename = option.filename
-    this.method = option.method.toLowerCase()
+  constructor (schema: IOpenAPI, path: string, method: ApiMethod, option: IOpenAPIOperation) {
+    this.operation = option
+    this.path = path
+    this.method = method.toLowerCase()
+    this.schema = schema
   }
-  validate (data: any, schema: OpenAPISchema, name: string) {
-    const validate = ajv.compile(schema)
+
+  validate (data: any, schema: IOpenAPISchema, name: string): boolean {
+    const validate = ajv
+      .addSchema(this.schema)
+      .compile(schema)
     const b = validate(data)
     if (b !== true) {
-      const errors = (validate.errors || []).map(item => {
+      throw (validate.errors || []).map(item => {
         return {
           name: name,
           message: item.message
         }
       })
-
-      throw errors
     }
-    return
+    return true
   }
-  getParams (ctx: Koa.ParameterizedContext, at: OpenAPIParameterLocation): any {
+
+  getParams (ctx: Koa.ParameterizedContext, at: IOpenAPIParameterLocation): any {
     if (at === 'query') {
       return ctx.query
     }
@@ -108,97 +94,105 @@ class SwaggerApi {
       return ctx.params || {}
     }
   }
-  async getParamsSchema (at: OpenAPIParameterLocation): Promise<OpenAPISchema> {
-    const obj: OpenAPISchema = {
-      type: 'object',
-      properties: {},
-      required: []
+
+  addParamMetaSchema (params: IOpenAPIParameter, schema: IOpenAPISchema | undefined, root: IOpenAPISchema): IOpenAPISchema {
+    if (!schema) {
+      return root
     }
-    let parameters: Referenced<OpenAPIParameter>[] =
-      this.operation.parameters || []
+    let name = params.name
+    let required = params.required
+    if (!root.properties) {
+      root.properties = {}
+    }
+    root.properties[name] = schema
+    if (required) {
+      if (!root.required) {
+        root.required = []
+      }
+      root.required.push(name)
+    }
+    return root
+  }
+
+  async getParamsSchema (at: IOpenAPIParameterLocation): Promise<Dict<IOpenAPISchema>> {
+    const obj: Dict<IOpenAPISchema> = {}
+
+    let parameters: Array<Referenced<IOpenAPIParameter>> = this.operation.parameters || []
 
     for (let param of parameters) {
-      let asRef = param as OpenAPIRef
-      let asParamter = param as OpenAPIParameter
-      if (asRef['$ref'] !== '') {
-        const item: any = await $RefParser.dereference(asRef)
-        param = item
+      let asParameter = param as IOpenAPIParameter
+      let asRef = param as IOpenAPIRef
+      if (asRef.hasOwnProperty('$ref')) {
+        let root: { temp: any } & any = _.cloneDeep(this.schema)
+        root.temp = asRef
+        let schema: any = await $RefParser.dereference(root, {
+          dereference: {
+            circular: false
+          }
+        })
+        if (schema.temp) {
+          asParameter = schema.temp as IOpenAPIParameter
+        }
       }
-      if (asParamter['in'] !== at) {
+
+      if (asParameter.in !== at) {
         continue
       }
 
-      let schemaAsRef: OpenAPIRef = (asParamter['schema'] as OpenAPIRef) || {}
-      let schemaAsOpenAPISchema: OpenAPISchema =
-        (asParamter['schema'] as OpenAPISchema) || {}
+      obj.default = this.addParamMetaSchema(asParameter, asParameter.schema, obj.default)
 
-      let schema: OpenAPISchema = schemaAsOpenAPISchema || {}
-
-      let name = asParamter['name']
-      let required = asParamter['required']
-      let allowEmptyValue = asParamter['allowEmptyValue']
-      let example = asParamter['example']
-
-      if (schemaAsRef['$ref']) {
-        const item: any = await $RefParser.dereference(schemaAsRef)
-        schema = item
-      }
-
-      schema.nullable = schema.nullable || allowEmptyValue
-      schema.example = schema.example || example
-
-      if (!obj.properties) {
-        obj.properties = {}
-      }
-      obj.properties[name] = schema
-      if (!!required) {
-        if (!obj.required) {
-          obj.required = []
-        }
-        obj.required.push(name)
+      let content = asParameter.content
+      if (content) {
+        Object.keys(content).forEach((key) => {
+          if (!content) {
+            return
+          }
+          const item = content[key]
+          obj[key] = this.addParamMetaSchema(asParameter, item, obj[key])
+        })
       }
     }
     return obj
   }
-  async getPayloadSchema (type: string): Promise<OpenAPISchema> {
-    type = type.toLowerCase()
-    let requestBodyAsRef: OpenAPIRef =
-      (this.operation.requestBody as OpenAPIRef) || {}
 
-    let requestBodyAsOpenAPIRequestBody = this.operation.requestBody || {}
-
-    let requestBody: any = requestBodyAsOpenAPIRequestBody || {}
-
-    if (requestBodyAsRef['$ref']) {
-      requestBody = await $RefParser.dereference(requestBodyAsRef)
+  async getPayloadSchema (): Promise<Dict<IOpenAPISchema>> {
+    const obj: Dict<IOpenAPISchema> = {}
+    let asRef = this.operation.requestBody as IOpenAPIRef
+    let asRequestBody = this.operation.requestBody as IOpenAPIRequestBody
+    if (asRef.hasOwnProperty('$ref')) {
+      let root: { temp: any } & any = _.cloneDeep(this.schema)
+      root.temp = asRef
+      let schema: any = await $RefParser.dereference(root, {
+        dereference: {
+          circular: false
+        }
+      })
+      if (schema.temp) {
+        asRequestBody = schema.temp as IOpenAPIRequestBody
+      }
     }
 
-    let content = requestBody['content']
+    let content = asRequestBody.content
 
-    if (!content) {
-      return {}
+    if (content) {
+      Object.keys(content).forEach((key) => {
+        if (!content) {
+          return
+        }
+        const item = content[key]
+        if (item.schema) {
+          obj[key] = item.schema
+        }
+      })
     }
-
-    let contentType = content[type]
-    if (!contentType) {
-      return {}
-    }
-
-    let schema = contentType['schema'] || {}
-    let example = contentType['example']
-    if (schema['$ref']) {
-      schema = await $RefParser.dereference(schema)
-    }
-    schema.example = schema.example || example
-
-    return schema
+    return obj
   }
 
   getPayload (ctx: Koa.ParameterizedContext<any, KoaBody>): any {
     return ctx.request.body
   }
 
-  do (): Koa.Middleware<any, KoaBody> {
+  verify (): Koa.Middleware<any, KoaBody> {
     const self = this
     return async function (
       ctx: Koa.ParameterizedContext<any, KoaBody>,
@@ -211,26 +205,34 @@ class SwaggerApi {
         const getCookie = self.getParams(ctx, 'cookie')
         const getPayload = self.getPayload(ctx)
 
-        const [
-          pathParamsSchema,
-          getQuerySchema,
-          getHeaderSchema,
-          getCookieSchema,
-          getPayloadSchema
-        ] = await Promise.all([
-          self.getParamsSchema('path'),
-          self.getParamsSchema('query'),
-          self.getParamsSchema('header'),
-          self.getParamsSchema('cookie'),
-          // 获取请求 Content-Type 字段, 不包含参数, 如 "charset".
-          self.getPayloadSchema(ctx.type)
-        ])
+        if (
+          !self.paramsSchema ||
+          !self.querySchema ||
+          !self.headerSchema ||
+          !self.cookieSchema ||
+          !self.payloadSchema
+        ) {
+          [
+            self.paramsSchema,
+            self.querySchema,
+            self.headerSchema,
+            self.cookieSchema,
+            self.payloadSchema
+          ] = await Promise.all([
+            self.getParamsSchema('path'),
+            self.getParamsSchema('query'),
+            self.getParamsSchema('header'),
+            self.getParamsSchema('cookie'),
+            // 获取请求 Content-Type 字段, 不包含参数, 如 "charset".
+            self.getPayloadSchema()
+          ])
+        }
 
-        self.validate(pathParams, pathParamsSchema, 'Path error')
-        self.validate(getQuery, getQuerySchema, 'Query error')
-        self.validate(getPayload, getPayloadSchema, 'Payload error')
-        self.validate(getHeader, getHeaderSchema, 'Header error')
-        self.validate(getCookie, getCookieSchema, 'Cookie error')
+        self.validate(pathParams, self.paramsSchema.defalut || {}, 'params validate error')
+        self.validate(getQuery, self.querySchema.defalut || {}, 'query validate error')
+        self.validate(getPayload, self.payloadSchema[ctx.type] || self.payloadSchema.defalut || {}, 'payload validate error')
+        self.validate(getHeader, self.headerSchema.defalut || {}, 'header validate error')
+        self.validate(getCookie, self.cookieSchema.defalut || {}, 'cookie validate error')
 
         await next()
       } catch (error) {
@@ -239,7 +241,7 @@ class SwaggerApi {
         if (!Array.isArray(err)) {
           err = [
             {
-              name: 'Internal error',
+              name: 'internal error',
               message: err.message
             }
           ]
@@ -253,50 +255,49 @@ class SwaggerApi {
   }
 }
 
-class Swagger {
-  swaggerApis: SwaggerApi[]
-  constructor () {
-    this.swaggerApis = []
+class OpenApi {
+  apis: Api[]
+  schema: IOpenAPI
+
+  constructor (schema: Omit<IOpenAPI, 'paths'>) {
+    this.apis = []
+    this.schema = {
+      openapi: schema.openapi,
+      info: schema.info,
+      servers: schema.servers,
+      paths: schema.paths || {},
+      components: schema.components,
+      security: schema.security,
+      tags: schema.tags,
+      externalDocs: schema.externalDocs,
+    }
   }
-  add (api: SwaggerApiOption): SwaggerApi {
-    const existing = this.swaggerApis.find(item => {
+
+  add (path: string, method: ApiMethod, option: IOpenAPIOperation, components?: IOpenAPIComponent) {
+    const existing = this.apis.find(item => {
       return (
-        item.path === api.path &&
-        item.method.toLowerCase() === api.method.toLowerCase()
+        item.path === path &&
+        item.method.toLowerCase() === method.toLowerCase()
       )
     })
-
     if (existing) {
       const err = new Error(
         chalk.red(
-          `path ${api.path} method ${api.method} is existing ${existing.filename}`
+          `path ${ path } method ${ method } is existing ${ existing.operation.operationId }`
         )
       )
       console.error(err)
     }
-
-    const router = new SwaggerApi(api)
-    this.swaggerApis.push(router)
-    return router
-  }
-  extendPath (option: SwaggerOption): SwaggerOption {
-    const paths: OpenAPIPaths = (option.paths = option.paths || {})
-    this.swaggerApis.forEach(item => {
-      if (!paths[item.path]) {
-        paths[item.path] = {}
-      }
-      const findPath: any = paths[item.path]
-      if (findPath[item.method]) {
-        findPath[item.method] = item.operation
-      } else {
-        findPath[item.method] = item.operation
-      }
-    })
-    return option
+    this.schema.components = _.defaultsDeep({}, this.schema.components, components)
+    const api = new Api(this.schema, path, method, option)
+    this.apis.push(api)
+    this.schema.paths = this.schema.paths || {}
+    this.schema.paths[path] = this.schema.paths[path] || {}
+    this.schema.paths[path][method] = api.operation
   }
 
-  ui (config: SwaggerOptionUI): Koa.Middleware {
-    let option: SwaggerOption = {
+  ui (config: IOpenAPI, json_path?: string, ui_path?: string): Koa.Middleware {
+    let option: IOpenAPI = {
       ...{
         openapi: '3.0.0',
         info: {
@@ -308,67 +309,32 @@ class Swagger {
       ...config
     }
 
-    option = this.extendPath(option)
-
     return async function (
       ctx: any,
       next: () => Promise<any>
     ) {
-      if (ctx.path === config.routerPath) {
+      if (json_path !== undefined && ctx.path === json_path) {
         ctx.body = option
-      }
-      if (!config.uiRouterPath) {
-        await next()
-      }
-      if (ctx.path === config.uiRouterPath) {
-        const templ = `
-        <!DOCTYPE html>
-          <html>
-            <head>
-              <title>${option.info.title} - ${option.info.version}</title>
-              <meta charset="utf-8"/>
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
-              <style>
-                body {
-                  margin: 0;
-                  padding: 0;
-                }
-              </style>
-            </head>
-            <body>
-              <redoc spec-url='${config.routerPath}'></redoc>
-              <script src="${config.uiRouterPath}__inner__js.js"> </script>
-            </body>
-          </html>
-        `
-        ctx.body = templ
-      } else if (ctx.path === `${config.uiRouterPath}__inner__js.js`) {
-        await send(ctx, 'redoc.standalone.js', { gzip: true, root: __dirname })
+      } else if (ui_path !== undefined && ctx.path === ui_path) {
+        ctx.body = ''
+      } else if (ui_path !== undefined && ctx.path === path.resolve(ui_path, 'redoc.standalone.js')) {
+        await send(ctx, 'redoc.standalone.js', { gzip: true, root: path.resolve(__dirname, '3rd') })
       } else {
         await next()
       }
     }
   }
 
-  printRoutes () {
+  print () {
     const table = new Table({
-      head: ['Method', 'Path', 'Other']
+      head: [ 'Method', 'Path', 'Other' ]
     })
-
-    this.swaggerApis.forEach(item => {
-      table.push([item.method, item.path, item.filename])
+    this.apis.forEach(item => {
+      table.push([ item.method, item.path, item.operation.operationId ])
     })
-
-    console.log(` App Routes :`)
+    console.log(`Routes :`)
     console.log(table.toString())
   }
 }
-export {
-  SwaggerOption,
-  SwaggerOptionUI,
-  SwaggerApiOption,
-  SwaggerApi,
-  OpenAPIOperation
-}
-export default Swagger
+
+export default OpenApi

@@ -1,15 +1,7 @@
-import Swagger, {
-  SwaggerOption,
-  SwaggerOptionUI,
-  SwaggerApiOption,
-  SwaggerApi,
-  OpenAPIOperation
-} from "./src/swagger";
-export default Swagger;
-export {
-  SwaggerOption,
-  SwaggerOptionUI,
-  SwaggerApiOption,
-  SwaggerApi,
-  OpenAPIOperation
-};
+import Swagger from './src/swagger'
+
+export default Swagger
+export * from './src/openapi'
+export * from './src/swagger'
+
+
