@@ -1,3 +1,5 @@
 test
 node_modules
-static
+example
+.history
+.idea
