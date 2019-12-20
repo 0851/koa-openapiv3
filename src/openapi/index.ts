@@ -287,7 +287,7 @@ export type Referenced<T> = IOpenAPIRef | T
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 
 export type Dict<T> = {
-  [key: string]: T | undefined;
+  [key: string]: T;
 }
 
 export interface IOpenAPIContact {

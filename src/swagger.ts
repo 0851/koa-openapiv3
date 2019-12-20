@@ -8,6 +8,7 @@ import chalk from 'chalk'
 import path from 'path'
 import * as _ from 'lodash'
 import Debug from 'debug'
+import { hbs } from './util'
 
 const debug = Debug('openapi')
 
@@ -30,6 +31,7 @@ import * as metaSchema from 'ajv/lib/refs/json-schema-draft-04.json'
 let ajv: any = new Ajv({
   allErrors: true,
   schemaId: 'auto',
+  jsonPointers: true,
 })
 
 ajv.addMetaSchema(metaSchema)
@@ -280,6 +282,7 @@ export class Api {
   }
 }
 
+
 class OpenApi {
   apis: Api[]
   schema: IOpenAPI
@@ -313,7 +316,7 @@ class OpenApi {
     return api
   }
 
-  static ui (config: IOpenAPI, json_path?: string, ui_path?: string): Koa.Middleware {
+  static ui (config: IOpenAPI, json_path?: string, ui_path?: string, web_index_path?: string, web_static_path?: string): Koa.Middleware {
     let option: IOpenAPI = {
       ...{
         openapi: '3.0.0',
@@ -326,16 +329,37 @@ class OpenApi {
       ...config
     }
 
+    let index_file: string = web_index_path || path.resolve(__dirname, 'index.hbs')
+    let static_dir: string = web_static_path || path.resolve(__dirname, '..', 'node_modules', 'swagger-ui-dist')
+
+    if (json_path) {
+      console.log(`json schema path ${ chalk.green(json_path) }`)
+    }
+    if (ui_path) {
+      console.log(`swagger ui path ${ chalk.green(ui_path) }`)
+    }
+
     return async function (
       ctx: any,
       next: () => Promise<any>
     ) {
-      if (json_path !== undefined && ctx.path === json_path) {
+      let request_path = ctx.path
+      if (json_path !== undefined && request_path === json_path) {
         ctx.body = option
-      } else if (ui_path !== undefined && ctx.path === ui_path) {
-        ctx.body = ''
-      } else if (ui_path !== undefined && ctx.path === path.resolve(ui_path, 'redoc.standalone.js')) {
-        await send(ctx, 'redoc.standalone.js', { gzip: true, root: path.resolve(__dirname, '3rd') })
+      } else if (ui_path !== undefined) {
+        let static_path = path.resolve(ui_path, 'static')
+        let static_reg = new RegExp(`^${ static_path }`)
+        if (request_path === ui_path) {
+          let obj = {
+            doc_path: json_path,
+            web_static_path: static_path
+          }
+          let tmp = await hbs(index_file, obj)
+          ctx.body = tmp
+        } else if (static_reg.test(request_path)) {
+          let p = request_path.replace(static_reg, '')
+          await send(ctx, p, { gzip: true, root: static_dir })
+        }
       } else {
         await next()
       }
@@ -344,12 +368,13 @@ class OpenApi {
 
   print () {
     const table = new Table({
-      head: [ 'method', 'path', 'operationId' ]
+      head: [ 'method', 'path', 'operation' ]
     })
     this.apis.forEach(item => {
       table.push([ item.method, item.path, item.operation.operationId ])
     })
-    console.log(`Routes :`)
+    console.log(``)
+    console.log(`${ chalk.red('apis: ') }`)
     console.log(table.toString())
   }
 }

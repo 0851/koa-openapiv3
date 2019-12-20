@@ -21,14 +21,16 @@ e.g. `application/json` `text/plain`   `application/x-www-form-urlencoded`
 if you do not like this ui ,you can use swagger json path custom ui
 ```
 ## 
-![errors tips](./static/1-min.png)
-![cli print routes](./static/2-min.png)
-![swagger api json](./static/3-min.png)
-![swagger api ui](./static/5-min.png)
+![errors tips](./example/1-min.png)
+![cli print routes](./example/2-min.png)
+![swagger api json](./example/3-min.png)
+![swagger api ui](./example/5-min.png)
 
-## example
-```ts
-
+## test
+```bash
+cd test
+yarn
+npm run dev
 ```
 
 ## method
@@ -60,7 +62,7 @@ interface Swagger{
     schema: IOpenAPI
     constructor (schema: Omit<IOpenAPI, 'paths'>)
     // show ui 
-    static ui (config: IOpenAPI, json_path?: string, ui_path?: string): Koa.Middleware
+    static ui (config: IOpenAPI, json_path?: string, ui_path?: string, web_index_path?: string, web_static_path?: string): Koa.Middleware
     // cli print all routes
     print () void
     // add one router

@@ -97,7 +97,7 @@ router.post(test2.path, test2.verify(), async ctx => {
 
 app.use(router.routes()).use(router.allowedMethods())
 
-app.use(OpenApi.ui(openapi.schema))
+app.use(OpenApi.ui(openapi.schema, '/openapi.json', '/docs'))
 
 openapi.print()
 
