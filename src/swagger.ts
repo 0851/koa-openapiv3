@@ -1,7 +1,8 @@
 import Ajv from 'ajv'
 import ajverrors from 'ajv-errors'
 import send from 'koa-send'
-import Koa from 'koa'
+import Koa, { Middleware, ParameterizedContext } from 'koa'
+import { getAbsoluteFSPath } from 'swagger-ui-dist'
 import Table from 'cli-table'
 import $RefParser from 'json-schema-ref-parser'
 import chalk from 'chalk'
@@ -37,12 +38,6 @@ let ajv: any = new Ajv({
 ajv.addMetaSchema(metaSchema)
 
 ajverrors(ajv /*, {singleError: true} */)
-
-export interface KoaBody {
-  request: {
-    body: any
-  }
-}
 
 export type ApiMethod =
   'get' |
@@ -96,7 +91,7 @@ export class Api {
     return true
   }
 
-  getParams (ctx: Koa.ParameterizedContext, at: IOpenAPIParameterLocation): any {
+  getParams (ctx: ParameterizedContext, at: IOpenAPIParameterLocation): any {
     if (at === 'query') {
       return ctx.query
     }
@@ -215,16 +210,23 @@ export class Api {
     return obj
   }
 
-  getPayload (ctx: Koa.ParameterizedContext<any, KoaBody>): any {
-    return ctx.request.body
+  getPayload (ctx: ParameterizedContext): any {
+    let request = ctx.request as any
+    if (request && request.body) {
+      return request.body
+    }
   }
 
-  verify (): Koa.Middleware<any, KoaBody> {
+  verify (paramMetaType: string = 'default',
+          headerMetaType: string = 'default',
+          cookieMetaType: string = 'default',
+          queryMetaType: string = 'default'
+  ): Middleware {
     const self = this
     return async function (
-      ctx: Koa.ParameterizedContext<any, KoaBody>,
-      next: () => Promise<any>
-    ) {
+      ctx: ParameterizedContext,
+      next?: () => Promise<any>
+    ): Promise<void> {
       try {
         const pathParams = self.getParams(ctx, 'path')
         const getHeader = self.getParams(ctx, 'header')
@@ -255,13 +257,16 @@ export class Api {
           self.schemaInited = true
         }
 
-        self.validate(pathParams, self.paramsSchema.default, 'params validate error')
-        self.validate(getHeader, self.headerSchema.default, 'header validate error')
-        self.validate(getCookie, self.cookieSchema.default, 'cookie validate error')
-        self.validate(getQuery, self.querySchema.default, 'query validate error')
+        self.validate(pathParams, self.paramsSchema[paramMetaType], 'params validate error')
+        self.validate(getHeader, self.headerSchema[headerMetaType], 'header validate error')
+        self.validate(getCookie, self.cookieSchema[cookieMetaType], 'cookie validate error')
+        self.validate(getQuery, self.querySchema[queryMetaType], 'query validate error')
         self.validate(getPayload, self.payloadSchema[ctx.type] || self.payloadSchema.default, 'payload validate error')
 
-        await next()
+        if (next) {
+          await next()
+        }
+
       } catch (error) {
         ctx.status = 500
         let err = error
@@ -273,10 +278,7 @@ export class Api {
             }
           ]
         }
-        ctx.body = {
-          code: 500,
-          errors: err
-        }
+        throw err
       }
     }
   }
@@ -316,7 +318,7 @@ class OpenApi {
     return api
   }
 
-  static ui (config: IOpenAPI, json_path?: string, ui_path?: string, web_index_path?: string, web_static_path?: string): Koa.Middleware {
+  static ui (config: IOpenAPI, json_path?: string, ui_path?: string, web_index_path?: string, web_static_path?: string): Middleware {
     let option: IOpenAPI = {
       ...{
         openapi: '3.0.0',
@@ -330,14 +332,7 @@ class OpenApi {
     }
 
     let index_file: string = web_index_path || path.resolve(__dirname, 'index.hbs')
-    let static_dir: string = web_static_path || path.resolve(__dirname, '..', 'node_modules', 'swagger-ui-dist')
-
-    if (json_path) {
-      console.log(`json schema path ${ chalk.green(json_path) }`)
-    }
-    if (ui_path) {
-      console.log(`swagger ui path ${ chalk.green(ui_path) }`)
-    }
+    let static_dir: string = web_static_path || getAbsoluteFSPath()
 
     return async function (
       ctx: any,
@@ -368,10 +363,10 @@ class OpenApi {
 
   print () {
     const table = new Table({
-      head: [ 'method', 'path', 'operation' ]
+      head: [ 'operation', 'path', 'method', ]
     })
     this.apis.forEach(item => {
-      table.push([ item.method, item.path, item.operation.operationId ])
+      table.push([ chalk.green(item.operation.operationId), item.path, item.method ])
     })
     console.log(``)
     console.log(`${ chalk.red('apis: ') }`)

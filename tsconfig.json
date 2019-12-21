@@ -9,10 +9,20 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "sourceMap": true,
-    "lib": ["es6"],
+    "lib": [
+      "es6",
+      "dom"
+    ],
     "strict": true,
     "strictNullChecks": true
   },
-  "include": ["index.ts", "src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "include": [
+    "index.ts",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts"
+  ]
 }

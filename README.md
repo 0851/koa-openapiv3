@@ -2,13 +2,13 @@
 this is a koa middleware ，that validates header&amp;cookie&amp;params&amp;body&amp;parameters based on openapiv3 and displays doc and cli print routing information
 
 ## install
-```js
+```bash
 npm install koa-openapiv3
 yarn add koa-openapiv3
 ```
 
 ## require
-```js
+```bash
 "koa": "^2.7.0",
 "koa-body": "^4.1.1",
 "koa-router": "^7.4.0"
@@ -53,8 +53,13 @@ interface Api {
     addParamMetaSchema (params: IOpenAPIParameter, schema: IOpenAPISchema | undefined, root: IOpenAPISchema): IOpenAPISchema
     async getParamsSchema (at: IOpenAPIParameterLocation): Promise<Dict<IOpenAPISchema>>
     async getPayloadSchema (): Promise<Dict<IOpenAPISchema>>
-    getPayload (ctx: Koa.ParameterizedContext<any, KoaBody>): any
-    verify (): Koa.Middleware<any, KoaBody>
+    getPayload (ctx: Koa.ParameterizedContext): any
+    verify (
+        paramMetaType: string = 'default',
+        headerMetaType: string = 'default',
+        cookieMetaType: string = 'default',
+        queryMetaType: string = 'default'
+    ): Middleware
 }
 
 interface Swagger{
