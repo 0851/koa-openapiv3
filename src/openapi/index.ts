@@ -1,4 +1,3 @@
-
 // https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#definitions
 export interface IOpenAPIExtensions {
   [xkey: string]: any
@@ -137,8 +136,8 @@ export interface IOpenAPIRequestBody extends IOpenAPIExtensions {
 export interface IOpenAPIMediaType extends IOpenAPIExtensions {
   schema?: Referenced<IOpenAPISchema>
   example?: any
-  examples?: { [name: string]: Referenced<IOpenAPIExample> }
-  encoding?: { [field: string]: IOpenAPIEncoding }
+  examples?: Dict<Referenced<IOpenAPIExample>>
+  encoding?: Dict<IOpenAPIEncoding>
 }
 
 export interface IOpenAPIEncoding extends IOpenAPIExtensions {
@@ -226,7 +225,7 @@ export interface IOpenAPISchema extends IOpenAPIExtensions {
   allOf?: Array<IOpenAPISchema>
   not?: IOpenAPISchema
   items?: IOpenAPISchema
-  properties?: { [name: string]: IOpenAPISchema }
+  properties?: Dict<IOpenAPISchema>
   additionalProperties?: boolean | IOpenAPISchema
   description?: string
   format?: string
@@ -235,7 +234,7 @@ export interface IOpenAPISchema extends IOpenAPIExtensions {
 
 export interface IOpenAPIDiscriminator extends IOpenAPIExtensions {
   propertyName: string
-  mapping?: { [name: string]: string }
+  mapping?: Dict<string>
 }
 
 export interface IOpenAPIXML extends IOpenAPIExtensions {
