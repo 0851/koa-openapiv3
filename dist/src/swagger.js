@@ -46,6 +46,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -73,7 +80,7 @@ var metaSchema = __importStar(require("ajv/lib/refs/json-schema-draft-04.json"))
 var ajv = new ajv_1.default({
     allErrors: true,
     schemaId: 'auto',
-    jsonPointers: true,
+    jsonPointers: true
 });
 ajv.addMetaSchema(metaSchema);
 ajv_errors_1.default(ajv /*, {singleError: true} */);
@@ -98,16 +105,13 @@ var Api = /** @class */ (function () {
             return true;
         }
         schema = _.defaultsDeep({}, this.schema, schema);
-        var validate = ajv
-            .compile(schema);
+        var validate = ajv.compile(schema);
         var b = validate(data);
         if (b !== true) {
-            throw (validate.errors || []).map(function (item) {
-                return {
-                    name: name,
-                    message: item.message
-                };
+            var errors = (validate.errors || []).map(function (item) {
+                return item.keyword + ": " + item.message;
             });
+            throw new Error("[" + name + "]" + __spreadArrays(errors).join(';'));
         }
         return true;
     };
@@ -272,18 +276,19 @@ var Api = /** @class */ (function () {
         var self = this;
         return function (ctx, next) {
             return __awaiter(this, void 0, void 0, function () {
-                var pathParams, getHeader, getCookie, getQuery, getPayload, error_1, err;
+                var pathParams, getHeader, getCookie, getQuery, getPayload, error_1, error_2;
                 var _a;
                 return __generator(this, function (_b) {
                     switch (_b.label) {
                         case 0:
-                            _b.trys.push([0, 5, , 6]);
+                            _b.trys.push([0, 3, , 4]);
                             pathParams = self.getParams(ctx, 'path');
                             getHeader = self.getParams(ctx, 'header');
                             getCookie = self.getParams(ctx, 'cookie');
                             getQuery = self.getParams(ctx, 'query');
                             getPayload = self.getPayload(ctx);
                             if (!!self.schemaInited) return [3 /*break*/, 2];
+                            ;
                             return [4 /*yield*/, Promise.all([
                                     self.getParamsSchema('path'),
                                     self.getParamsSchema('header'),
@@ -307,26 +312,22 @@ var Api = /** @class */ (function () {
                             self.validate(getCookie, self.cookieSchema[cookieMetaType], 'cookie validate error');
                             self.validate(getQuery, self.querySchema[queryMetaType], 'query validate error');
                             self.validate(getPayload, self.payloadSchema[ctx.type] || self.payloadSchema.default, 'payload validate error');
-                            if (!next) return [3 /*break*/, 4];
-                            return [4 /*yield*/, next()];
+                            return [3 /*break*/, 4];
                         case 3:
-                            _b.sent();
-                            _b.label = 4;
-                        case 4: return [3 /*break*/, 6];
-                        case 5:
                             error_1 = _b.sent();
-                            ctx.status = 500;
-                            err = error_1;
-                            if (!Array.isArray(err)) {
-                                err = [
-                                    {
-                                        name: 'internal error',
-                                        message: err.message
-                                    }
-                                ];
-                            }
-                            throw err;
-                        case 6: return [2 /*return*/];
+                            throw error_1;
+                        case 4:
+                            _b.trys.push([4, 7, , 8]);
+                            if (!(next && _.isFunction(next))) return [3 /*break*/, 6];
+                            return [4 /*yield*/, next()];
+                        case 5:
+                            _b.sent();
+                            _b.label = 6;
+                        case 6: return [3 /*break*/, 8];
+                        case 7:
+                            error_2 = _b.sent();
+                            throw error_2;
+                        case 8: return [2 /*return*/];
                     }
                 });
             });
@@ -342,8 +343,7 @@ var OpenApi = /** @class */ (function () {
     }
     OpenApi.prototype.add = function (path, method, option, components) {
         var existing = this.apis.find(function (item) {
-            return (item.path === path &&
-                item.method.toLowerCase() === method.toLowerCase());
+            return item.path === path && item.method.toLowerCase() === method.toLowerCase();
         });
         if (existing) {
             var err = new Error(chalk_1.default.red("path " + path + " method " + method + " is existing " + existing.operation.operationId));
@@ -412,7 +412,7 @@ var OpenApi = /** @class */ (function () {
     };
     OpenApi.prototype.print = function () {
         var table = new cli_table_1.default({
-            head: ['operation', 'path', 'method',]
+            head: ['operation', 'path', 'method']
         });
         this.apis.forEach(function (item) {
             table.push([chalk_1.default.green(item.operation.operationId), item.path, item.method]);
