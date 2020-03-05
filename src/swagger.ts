@@ -13,7 +13,6 @@ import { hbs } from './util'
 
 const debug = Debug('openapi')
 
-
 import {
   IOpenAPI,
   IOpenAPISchema,
@@ -24,7 +23,7 @@ import {
   IOpenAPIOperation,
   IOpenAPIComponent,
   Dict,
-  IOpenAPIRequestBody,
+  IOpenAPIRequestBody
 } from './openapi'
 
 import * as metaSchema from 'ajv/lib/refs/json-schema-draft-04.json'
@@ -32,7 +31,7 @@ import * as metaSchema from 'ajv/lib/refs/json-schema-draft-04.json'
 let ajv: any = new Ajv({
   allErrors: true,
   schemaId: 'auto',
-  jsonPointers: true,
+  jsonPointers: true
 })
 
 ajv.addMetaSchema(metaSchema)
@@ -40,14 +39,14 @@ ajv.addMetaSchema(metaSchema)
 ajverrors(ajv /*, {singleError: true} */)
 
 export type ApiMethod =
-  'get' |
-  'put' |
-  'post' |
-  'delete' |
-  'options' |
-  'head' |
-  'patch' |
-  'trace'
+  | 'get'
+  | 'put'
+  | 'post'
+  | 'delete'
+  | 'options'
+  | 'head'
+  | 'patch'
+  | 'trace'
 
 export class Api {
   path: string
@@ -61,14 +60,19 @@ export class Api {
   cookieSchema: Dict<IOpenAPISchema> = {}
   payloadSchema: Dict<IOpenAPISchema> = {}
 
-  constructor (schema: IOpenAPI, path: string, method: ApiMethod, option: IOpenAPIOperation) {
+  constructor(
+    schema: IOpenAPI,
+    path: string,
+    method: ApiMethod,
+    option: IOpenAPIOperation
+  ) {
     this.operation = option
     this.path = path
     this.method = method
     this.schema = schema
   }
 
-  validate (data: any, schema: IOpenAPISchema | undefined, name: string): boolean {
+  validate(data: any, schema: IOpenAPISchema | undefined, name: string): boolean {
     if (!schema) {
       return true
     }
@@ -77,21 +81,18 @@ export class Api {
     }
     schema = _.defaultsDeep({}, this.schema, schema)
 
-    const validate = ajv
-      .compile(schema)
+    const validate = ajv.compile(schema)
     const b = validate(data)
     if (b !== true) {
-      throw (validate.errors || []).map((item: any) => {
-        return {
-          name: name,
-          message: item.message
-        }
+      let errors = (validate.errors || []).map((item: any) => {
+        return `${item.keyword}: ${item.message}`
       })
+      throw new Error(`[${name}]${[ ...errors].join(';')}`)
     }
     return true
   }
 
-  getParams (ctx: ParameterizedContext, at: IOpenAPIParameterLocation): any {
+  getParams(ctx: ParameterizedContext, at: IOpenAPIParameterLocation): any {
     if (at === 'query') {
       return ctx.query
     }
@@ -99,7 +100,7 @@ export class Api {
       return new Proxy(
         {},
         {
-          get (obj: {}, prop: string) {
+          get(obj: {}, prop: string) {
             return ctx.cookies.get(prop)
           }
         }
@@ -113,7 +114,11 @@ export class Api {
     }
   }
 
-  addParamMetaSchema (params: IOpenAPIParameter, schema: IOpenAPISchema | undefined, root: IOpenAPISchema): IOpenAPISchema {
+  addParamMetaSchema(
+    params: IOpenAPIParameter,
+    schema: IOpenAPISchema | undefined,
+    root: IOpenAPISchema
+  ): IOpenAPISchema {
     if (!schema) {
       return root
     }
@@ -128,7 +133,7 @@ export class Api {
     return root
   }
 
-  async getParamsSchema (at: IOpenAPIParameterLocation): Promise<Dict<IOpenAPISchema>> {
+  async getParamsSchema(at: IOpenAPIParameterLocation): Promise<Dict<IOpenAPISchema>> {
     const obj: Dict<IOpenAPISchema> = {}
 
     let parameters: Array<Referenced<IOpenAPIParameter>> = this.operation.parameters || []
@@ -156,12 +161,16 @@ export class Api {
         continue
       }
 
-      obj.default = this.addParamMetaSchema(asParameter, asParameter.schema, obj.default || {})
+      obj.default = this.addParamMetaSchema(
+        asParameter,
+        asParameter.schema,
+        obj.default || {}
+      )
 
       let content = asParameter.content
 
       if (content) {
-        Object.keys(content).forEach((key) => {
+        Object.keys(content).forEach(key => {
           if (!content) {
             return
           }
@@ -173,7 +182,7 @@ export class Api {
     return obj
   }
 
-  async getPayloadSchema (): Promise<Dict<IOpenAPISchema>> {
+  async getPayloadSchema(): Promise<Dict<IOpenAPISchema>> {
     const obj: Dict<IOpenAPISchema> = {}
     const requestBody = this.operation.requestBody
     if (requestBody !== Object(requestBody)) {
@@ -197,7 +206,7 @@ export class Api {
     let content = asRequestBody.content
 
     if (content) {
-      Object.keys(content).forEach((key) => {
+      Object.keys(content).forEach(key => {
         if (!content) {
           return
         }
@@ -210,20 +219,21 @@ export class Api {
     return obj
   }
 
-  getPayload (ctx: ParameterizedContext): any {
+  getPayload(ctx: ParameterizedContext): any {
     let request = ctx.request as any
     if (request && request.body) {
       return request.body
     }
   }
 
-  verify (paramMetaType: string = 'default',
-          headerMetaType: string = 'default',
-          cookieMetaType: string = 'default',
-          queryMetaType: string = 'default'
+  verify(
+    paramMetaType: string = 'default',
+    headerMetaType: string = 'default',
+    cookieMetaType: string = 'default',
+    queryMetaType: string = 'default'
   ): Middleware {
     const self = this
-    return async function (
+    return async function(
       ctx: ParameterizedContext,
       next?: () => Promise<any>
     ): Promise<void> {
@@ -233,9 +243,8 @@ export class Api {
         const getCookie = self.getParams(ctx, 'cookie')
         const getQuery = self.getParams(ctx, 'query')
         const getPayload = self.getPayload(ctx)
-
         if (!self.schemaInited) {
-          [
+          ;[
             self.paramsSchema,
             self.headerSchema,
             self.cookieSchema,
@@ -256,55 +265,63 @@ export class Api {
           debug(self.payloadSchema, 'self.payloadSchema')
           self.schemaInited = true
         }
-
-        self.validate(pathParams, self.paramsSchema[paramMetaType], 'params validate error')
-        self.validate(getHeader, self.headerSchema[headerMetaType], 'header validate error')
-        self.validate(getCookie, self.cookieSchema[cookieMetaType], 'cookie validate error')
+        self.validate(
+          pathParams,
+          self.paramsSchema[paramMetaType],
+          'params validate error'
+        )
+        self.validate(
+          getHeader,
+          self.headerSchema[headerMetaType],
+          'header validate error'
+        )
+        self.validate(
+          getCookie,
+          self.cookieSchema[cookieMetaType],
+          'cookie validate error'
+        )
         self.validate(getQuery, self.querySchema[queryMetaType], 'query validate error')
-        self.validate(getPayload, self.payloadSchema[ctx.type] || self.payloadSchema.default, 'payload validate error')
-
-        if (next) {
+        self.validate(
+          getPayload,
+          self.payloadSchema[ctx.type] || self.payloadSchema.default,
+          'payload validate error'
+        )
+      } catch (error) {
+        throw error
+      }
+      try {
+        if (next && _.isFunction(next)) {
           await next()
         }
-
       } catch (error) {
-        ctx.status = 500
-        let err = error
-        if (!Array.isArray(err)) {
-          err = [
-            {
-              name: 'internal error',
-              message: err.message
-            }
-          ]
-        }
-        throw err
+        throw error
       }
     }
   }
 }
 
-
 class OpenApi {
   apis: Api[]
   schema: IOpenAPI
 
-  constructor (schema: IOpenAPI) {
+  constructor(schema: IOpenAPI) {
     this.apis = []
     this.schema = schema
   }
 
-  add (path: string, method: ApiMethod, option: IOpenAPIOperation, components?: IOpenAPIComponent): Api {
+  add(
+    path: string,
+    method: ApiMethod,
+    option: IOpenAPIOperation,
+    components?: IOpenAPIComponent
+  ): Api {
     const existing = this.apis.find(item => {
-      return (
-        item.path === path &&
-        item.method.toLowerCase() === method.toLowerCase()
-      )
+      return item.path === path && item.method.toLowerCase() === method.toLowerCase()
     })
     if (existing) {
       const err = new Error(
         chalk.red(
-          `path ${ path } method ${ method } is existing ${ existing.operation.operationId }`
+          `path ${path} method ${method} is existing ${existing.operation.operationId}`
         )
       )
       console.error(err)
@@ -318,7 +335,13 @@ class OpenApi {
     return api
   }
 
-  static ui (config: IOpenAPI, json_path?: string, ui_path?: string, web_index_path?: string, web_static_path?: string): Middleware {
+  static ui(
+    config: IOpenAPI,
+    json_path?: string,
+    ui_path?: string,
+    web_index_path?: string,
+    web_static_path?: string
+  ): Middleware {
     let option: IOpenAPI = {
       ...{
         openapi: '3.0.0',
@@ -334,16 +357,13 @@ class OpenApi {
     let index_file: string = web_index_path || path.resolve(__dirname, 'index.hbs')
     let static_dir: string = web_static_path || getAbsoluteFSPath()
 
-    return async function (
-      ctx: any,
-      next: () => Promise<any>
-    ) {
+    return async function(ctx: any, next: () => Promise<any>) {
       let request_path = ctx.path
       if (json_path !== undefined && request_path === json_path) {
         ctx.body = option
       } else if (ui_path !== undefined) {
         let static_path = path.resolve(ui_path, 'static')
-        let static_reg = new RegExp(`^${ static_path }`)
+        let static_reg = new RegExp(`^${static_path}`)
         if (request_path === ui_path) {
           let obj = {
             doc_path: json_path,
@@ -361,15 +381,15 @@ class OpenApi {
     }
   }
 
-  print () {
+  print() {
     const table = new Table({
-      head: [ 'operation', 'path', 'method', ]
+      head: ['operation', 'path', 'method']
     })
     this.apis.forEach(item => {
-      table.push([ chalk.green(item.operation.operationId), item.path, item.method ])
+      table.push([chalk.green(item.operation.operationId), item.path, item.method])
     })
     console.log(``)
-    console.log(`${ chalk.red('apis: ') }`)
+    console.log(`${chalk.red('apis: ')}`)
     console.log(table.toString())
   }
 }
