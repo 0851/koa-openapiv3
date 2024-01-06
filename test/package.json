@@ -1,0 +1,20 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "ts-node index.ts"
+  },
+  "dependencies": {
+    "koa": "^2.7.0",
+    "koa-body": "^4.1.1",
+    "koa-openapiv3": "../",
+    "koa-router": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/koa-router": "^7.0.42",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3"
+  }
+}
